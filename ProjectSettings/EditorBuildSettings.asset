@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/SampleScene.unity
+    guid: 2cda990e2423bbf4892e6590ba056729
+  - enabled: 1
+    path: Assets/Scenes/MainScene.unity
+    guid: 0d4ca3287814b2f41948cfa501990b0c
+  - enabled: 1
+    path: Assets/Scenes/Blackjack.unity
+    guid: 53511327d74cab841985d656a4d76053
+  - enabled: 1
+    path: Assets/Scenes/5CardPoker.unity
+    guid: 85e8c485156bcea4088f178bf2ae271c
+  - enabled: 1
+    path: Assets/Scenes/HighLo.unity
+    guid: b41e75c0f120e6a4a9777854afdbb44a
+  m_configObjects: {}
