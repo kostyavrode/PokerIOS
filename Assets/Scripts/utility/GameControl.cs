@@ -51,6 +51,7 @@ public class GameControl : MonoBehaviour
             this.CurrentStatusText.text = "Not enough money!";
             return;
         }
+        
         this.CurrentStatusText.enabled = false;
         this.Player.ResetHand();
         this.Dealer.ResetHand();
@@ -122,7 +123,7 @@ public class GameControl : MonoBehaviour
 
      void Start()
      {
-        this.CurrentMoneyText.text = "Money: " + StaticVar.Money;
+        this.CurrentMoneyText.text = StaticVar.Money.ToString();
         this.CurrentBetText.text = "Bet: " + this.Bet.ToString();       
         this.StartButton.onClick.AddListener(() => StartGame());
         this.AutoplayButton.onClick.AddListener(() => AutoplayClicked());
@@ -135,7 +136,7 @@ public class GameControl : MonoBehaviour
    
     public void ResetBetPressed()
     {
-        this.CurrentMoneyText.text = "Money: " + StaticVar.Money;
+        this.CurrentMoneyText.text =  StaticVar.Money.ToString();
         this.Bet = 0;
         this.CurrentBetText.text = "Bet: " + this.Bet.ToString();
     }
@@ -157,7 +158,7 @@ public class GameControl : MonoBehaviour
         else
         {
             this.Bet += amount;
-            this.CurrentMoneyText.text = this.CurrentMoneyText.text = "Money: " + StaticVar.Money;
+            this.CurrentMoneyText.text = this.CurrentMoneyText.text = StaticVar.Money.ToString();
             this.CurrentBetText.text = "Bet: " + this.Bet.ToString();          
         }
 
@@ -172,7 +173,7 @@ public class GameControl : MonoBehaviour
         this.Deck.GetComponent<Renderer>().enabled = true;
         for (int i = 0; i < PlayerCard.Length; i++)
             PlayerCard[i].GetComponent<Renderer>().enabled = true;                 
-        this.CurrentMoneyText.text = this.CurrentMoneyText.text = "Money: " + StaticVar.Money;       
+        this.CurrentMoneyText.text = this.CurrentMoneyText.text = StaticVar.Money.ToString();       
     }
     private IEnumerator Autoplay()
     {   
@@ -182,11 +183,16 @@ public class GameControl : MonoBehaviour
 
     public void EnableButtons(bool status)
     {
-        this.Bet50Button.interactable = status;
-        this.Bet100Button.interactable = status;
-        this.Bet500Button.interactable = status;
-        this.StartButton.interactable = status;
-        this.RestBetButton.interactable = status;
+        //this.Bet50Button.interactable = status;
+        //this.Bet100Button.interactable = status;
+        //this.Bet500Button.interactable = status;
+        //this.StartButton.interactable = status;
+        //this.RestBetButton.interactable = status;
+        this.Bet50Button.gameObject.SetActive(status);
+        this.Bet100Button.gameObject.SetActive(status);
+        this.Bet500Button.gameObject.SetActive(status);
+        this.StartButton.gameObject.SetActive(status);
+        this.RestBetButton.gameObject.SetActive(status);
     }
 }
   

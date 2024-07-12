@@ -22,6 +22,7 @@ public class MainMenuControlScript : MonoBehaviour
 
     private void Start()
     {
+        if (CurrentMoneyText != null) 
         CurrentMoneyText.text =  StaticVar.Money.ToString();
     }
 }

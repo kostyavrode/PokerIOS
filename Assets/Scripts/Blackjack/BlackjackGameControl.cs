@@ -20,7 +20,9 @@ public class BlackjackGameControl : GameControl
     void Start()
     {
         this.AutoplaySetPointText.text = "Point: " + AutoplayValueSlide.value;
-        this.CurrentMoneyText.text = "Money: " + StaticVar.Money;
+        this.CurrentMoneyText.text = StaticVar.Money.ToString();
+        HitButton.gameObject.SetActive(false);
+        StandButton.gameObject.SetActive(false);
 
         this.HitButton.onClick.AddListener(() => HitPressed());
         this.StandButton.onClick.AddListener(() => StandPressed());
@@ -130,16 +132,25 @@ public class BlackjackGameControl : GameControl
         else if(Player.HandCardValues.Sum() == Dealer.HandCardValues.Sum())
             this.CurrentStatusText.text = "You Tie!";     
         
-        this.CurrentMoneyText.text = "Money: " + StaticVar.Money;     
+        this.CurrentMoneyText.text = StaticVar.Money.ToString();     
     }
 
     public override void StartGame()
     {
-        PlayerHandCount = 2;
-        DealerHandCount = 2;
-        this.HitButton.interactable = true;
-        this.StandButton.interactable = true;
-        base.StartGame();
-        Dealer.HandCard[0].GetComponent<SpriteRenderer>().enabled = true;
+        if (Bet > 0)
+        {
+            HitButton.gameObject.SetActive(true);
+            StandButton.gameObject.SetActive(true);
+            Bet50Button.gameObject.SetActive(false);
+            Bet100Button.gameObject.SetActive(false);
+            Bet500Button.gameObject.SetActive(false);
+
+            PlayerHandCount = 2;
+            DealerHandCount = 2;
+            this.HitButton.interactable = true;
+            this.StandButton.interactable = true;
+            base.StartGame();
+            Dealer.HandCard[0].GetComponent<SpriteRenderer>().enabled = true;
+        }
     }
 }
