@@ -7,6 +7,9 @@ using System.Linq;
 
 public class BlackjackGameControl : GameControl
 {
+    public GameObject winSprite;
+    public GameObject loseSprite;
+
     public Button HitButton;
     public Button StandButton;
 
@@ -121,12 +124,14 @@ public class BlackjackGameControl : GameControl
 
         if(PlayerBust || (!DealerBust && Dealer.HandCardValues.Sum() > Player.HandCardValues.Sum()))
         {
-            this.CurrentStatusText.text = "You Lose!";
+            loseSprite.gameObject.SetActive(true);
+            //this.CurrentStatusText.text = "You Lose!";
             StaticVar.Money -= this.Bet;
         }
         else if(DealerBust || (!PlayerBust && Player.HandCardValues.Sum() > Dealer.HandCardValues.Sum()))
         {
-            this.CurrentStatusText.text = "You Win!";
+            winSprite.gameObject.SetActive(true);
+            //this.CurrentStatusText.text = "You Win!";
             StaticVar.Money += this.Bet;
         }
         else if(Player.HandCardValues.Sum() == Dealer.HandCardValues.Sum())
@@ -151,6 +156,8 @@ public class BlackjackGameControl : GameControl
             this.StandButton.interactable = true;
             base.StartGame();
             Dealer.HandCard[0].GetComponent<SpriteRenderer>().enabled = true;
+            winSprite.gameObject.SetActive(false);
+            loseSprite.gameObject.SetActive(false);
         }
     }
 }
