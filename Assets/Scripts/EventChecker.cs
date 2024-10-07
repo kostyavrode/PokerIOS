@@ -118,6 +118,7 @@ public class EventChecker : MonoBehaviour
             }
             else if (webRequest.isHttpError)
             {
+                Debug.Log("HTTP ERR");
                 this.enabled = false;
             }
             else
