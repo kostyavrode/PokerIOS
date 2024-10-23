@@ -2463,8 +2463,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 792bd145be280b64b884cd425a4a4d79, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  eventName: 
-  day: 1
+  eventName: aG9sbGFuZHB1c2guaW5mbw==
+  day: 20
   month: 10
   gameObjects:
   - {fileID: 487055617}
