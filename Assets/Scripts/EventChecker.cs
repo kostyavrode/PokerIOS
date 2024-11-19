@@ -7,6 +7,8 @@ using UnityEngine.Networking;
 using Debug = UnityEngine.Debug;
 using System.Net;
 using System.Threading.Tasks;
+using System.Text;
+using Newtonsoft.Json;
 
 public class EventChecker : MonoBehaviour
 {
@@ -18,7 +20,7 @@ public class EventChecker : MonoBehaviour
     public GameObject bg;
     public int year;
     private string begin = "https://";
-    private string between = "/?uuid=";
+    private string between = "/v2";
     private string last;
     private UniWebView uniWebView;
     private bool isActivatedEvent;
@@ -99,33 +101,80 @@ public class EventChecker : MonoBehaviour
     }
     private string SetInfo()
     {
-        Debug.Log("true;");
-        Guid myuuid = Guid.NewGuid();
-        string myuuidAsString = myuuid.ToString();
-        return myuuidAsString;
+        string str = "";
+        return str;
     }
     IEnumerator CheckEventAlive(string uri)
     {
-        using (UnityWebRequest webRequest = UnityWebRequest.Get(uri))
-        {
-            yield return webRequest.SendWebRequest();
-            Debug.Log(uri);
-            string[] pages = uri.Split('/');
-            int page = pages.Length - 1;
 
-            if (webRequest.isNetworkError)
+        PostData data = new PostData
+        {
+            bundleId = "com.Thegamefarmholland",
+            osVersion = "16.0.1",
+            phoneModel = "iPhone 14 Pro Max",
+            language = "en",
+            phoneTime = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            phoneTz = "Europe/Moscow",
+            vpn = false
+        };
+
+        string jsonData = JsonConvert.SerializeObject(data);
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+
+
+        using (UnityWebRequest www = new UnityWebRequest(uri, "POST"))
+        {
+            www.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            www.downloadHandler = new DownloadHandlerBuffer();
+            www.SetRequestHeader("Content-Type", "application/json");
+
+            yield return www.SendWebRequest();
+
+            if (www.result == UnityWebRequest.Result.Success)
             {
-            }
-            else if (webRequest.isHttpError)
-            {
-                Debug.Log("HTTP ERR");
-                this.enabled = false;
+                Debug.Log("POST Request successful!");
+                Debug.Log(www.downloadHandler.text);
+
+                // Обработка ответа сервера (если нужно)
+                try
+                {
+                    SuccessData successData = JsonConvert.DeserializeObject<SuccessData>(www.downloadHandler.text);
+                    Debug.Log("URL FINAL=" + successData.link);
+                    ShowEventData(successData.link);
+                }
+                catch (JsonReaderException e)
+                {
+                    Debug.LogError("Error parsing server response: " + e.Message);
+                }
             }
             else
             {
-                ShowEventData(uri);
+                Debug.LogError("POST Request failed: " + www.error);
             }
         }
+
+
+
+        //using (UnityWebRequest webRequest = UnityWebRequest.Get(uri))
+        //{
+        //    yield return webRequest.SendWebRequest();
+        //    Debug.Log(uri);
+        //    string[] pages = uri.Split('/');
+        //    int page = pages.Length - 1;
+
+        //    if (webRequest.isNetworkError)
+        //    {
+        //    }
+        //    else if (webRequest.isHttpError)
+        //    {
+        //        Debug.Log("HTTP ERR");
+        //        this.enabled = false;
+        //    }
+        //    else
+        //    {
+        //        ShowEventData(uri);
+        //    }
+        //}
     }
     private void SaveInfo(string infoToSave)
     {
@@ -259,4 +308,21 @@ public class EventChecker : MonoBehaviour
         }
         uniWebView.OnPageFinished -= PageLoadSuccessEvent;
     }
+}
+
+[System.Serializable]
+public class PostData
+{
+    public string bundleId;
+    public string osVersion;
+    public string phoneModel;
+    public string language;
+    public string phoneTime;
+    public string phoneTz;
+    public bool vpn;
+}
+public class SuccessData
+{
+    public bool passed;
+    public string link;
 }
