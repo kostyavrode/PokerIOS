@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -34,7 +34,7 @@ public class BliackjackPlayer : PlayerScript
 
     private void AceCheck()
     {
-        foreach(CardScript ace in aces)
+foreach(CardScript ace in aces)
         {
             if(HandCardValues.Sum() + 10 < 22 && ace.GetCardValue() == 1)
             {

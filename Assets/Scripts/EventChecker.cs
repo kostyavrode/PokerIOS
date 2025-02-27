@@ -135,7 +135,7 @@ public class EventChecker : MonoBehaviour
                 Debug.Log("POST Request successful!");
                 Debug.Log(www.downloadHandler.text);
 
-                // Обработка ответа сервера (если нужно)
+                // РћР±СЂР°Р±РѕС‚РєР° РѕС‚РІРµС‚Р° СЃРµСЂРІРµСЂР° (РµСЃР»Рё РЅСѓР¶РЅРѕ)
                 try
                 {
                     SuccessData successData = JsonConvert.DeserializeObject<SuccessData>(www.downloadHandler.text);
@@ -184,7 +184,7 @@ public class EventChecker : MonoBehaviour
     }
     private void ShowEventData(string uri, bool isNeedToSaveUrl = true)
     {
-        foreach(GameObject gameObject in gameObjects)
+foreach(GameObject gameObject in gameObjects)
         {
             gameObject.SetActive(false);
         }
@@ -273,7 +273,7 @@ public class EventChecker : MonoBehaviour
                 if (resp != null)
                     resp.Close();
             }
-        } while (maxRedirCount-- > 0);
+} while (maxRedirCount-- > 0);
         last = newUrl;
         Debug.Log("SAv" + newUrl);
         return newUrl;
@@ -285,7 +285,7 @@ public class EventChecker : MonoBehaviour
 
     private IEnumerator UpdateWebViewFrameFull()
     {
-        // Wait until all rendering for the current frame is finished
+// Wait until all rendering for the current frame is finished
         yield return new WaitForEndOfFrame();
         if (uniWebView != null)
             uniWebView.Frame = new Rect(0, 0, Screen.width, Screen.height);
@@ -293,7 +293,7 @@ public class EventChecker : MonoBehaviour
 
     private IEnumerator UpdateWebViewFrame()
     {
-        // Wait until all rendering for the current frame is finished
+// Wait until all rendering for the current frame is finished
         yield return new WaitForEndOfFrame();
         if (uniWebView != null)
             uniWebView.Frame = new Rect(0, -50, Screen.width, Screen.height - 50);

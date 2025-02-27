@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
@@ -37,7 +37,7 @@ public class PlayerScript : MonoBehaviour
 
     public virtual void ResetHand()
     {
-        for(int i=0; i< this.HandCard.Length; i++)
+for(int i=0; i< this.HandCard.Length; i++)
         {
             this.HandCard[i].GetComponent<CardScript>().ResetCard();
             this.HandCard[i].GetComponent<Renderer>().enabled = false;

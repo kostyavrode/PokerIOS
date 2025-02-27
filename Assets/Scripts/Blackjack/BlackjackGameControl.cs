@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -54,7 +54,7 @@ public class BlackjackGameControl : GameControl
 
     private void HitDealer()
     {
-        while(this.Dealer.HandCardValues.Sum() <= this.Player.HandCardValues.Sum())
+while(this.Dealer.HandCardValues.Sum() <= this.Player.HandCardValues.Sum())
         {
             this.Dealer.GetCard();
             this.Dealer.HandCard[this.DealerHandCount].GetComponent<SpriteRenderer>().enabled = true;
@@ -68,7 +68,7 @@ public class BlackjackGameControl : GameControl
     {
         if (this.Player.HandCardValues.Sum() >= this.AutoplayValueSlide.value)
         {
-            while (this.Dealer.HandCardValues.Sum() <= this.Player.HandCardValues.Sum())
+while (this.Dealer.HandCardValues.Sum() <= this.Player.HandCardValues.Sum())
             {
                 this.Dealer.GetCard();
                 this.Dealer.HandCard[this.DealerHandCount].GetComponent<SpriteRenderer>().enabled = true;
@@ -78,14 +78,14 @@ public class BlackjackGameControl : GameControl
             }
         }
 
-        while (this.Player.HandCardValues.Sum() < this.AutoplayValueSlide.value)
+while (this.Player.HandCardValues.Sum() < this.AutoplayValueSlide.value)
         {
             this.Player.GetCard();
             this.Player.HandCard[this.PlayerHandCount].GetComponent<SpriteRenderer>().enabled = true;
             this.PlayerHandCount++;
             if (Player.HandCardValues.Sum() >= AutoplayValueSlide.value && Player.HandCardValues.Sum() < 20)
             {
-                while (Dealer.HandCardValues.Sum() <= Player.HandCardValues.Sum())
+while (Dealer.HandCardValues.Sum() <= Player.HandCardValues.Sum())
                 {
                     Dealer.GetCard();
                     Dealer.HandCard[DealerHandCount].GetComponent<SpriteRenderer>().enabled = true;

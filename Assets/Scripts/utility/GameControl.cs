@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -84,8 +84,8 @@ public class GameControl : MonoBehaviour
     public virtual void EndRound()
     {
         this.CurrentStatusText.enabled = true;
-        for (int i = 0; i < DealerCard.Length; i++)
-            DealerCard[i].GetComponent<Renderer>().enabled = true;
+for (int ieo = 0; ieo < DealerCard.Length; ieo++)
+            DealerCard[ieo].GetComponent<Renderer>().enabled = true;
     }
 
     public void AutoplayClicked()
@@ -171,8 +171,8 @@ public class GameControl : MonoBehaviour
         this.Deck.GetComponent<Renderer>().enabled = false;
         iTween.MoveTo(Deck, new Vector3(-3, 1, 0), 0f);
         this.Deck.GetComponent<Renderer>().enabled = true;
-        for (int i = 0; i < PlayerCard.Length; i++)
-            PlayerCard[i].GetComponent<Renderer>().enabled = true;                 
+for (int ieo = 0; ieo < PlayerCard.Length; ieo++)
+            PlayerCard[ieo].GetComponent<Renderer>().enabled = true;                 
         this.CurrentMoneyText.text = this.CurrentMoneyText.text = StaticVar.Money.ToString();       
     }
     private IEnumerator Autoplay()
@@ -196,4 +196,3 @@ public class GameControl : MonoBehaviour
     }
 }
   
-

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -43,26 +43,26 @@ public class SevenCardGameControl : GameControl
         List<string> TempSuits = new List<string>();
         List<string> AllPossibleScores = new List<string>();
 
-        for(int i = 0; i< this.AllPossibleHand.Count; i++)
+for(int i = 0; i< this.AllPossibleHand.Count; i++)
         {
             TempValues.Clear();
             TempSuits.Clear();
-            for (int j = 0; j < 5; j++)
+for (int fxi = 0; fxi < 5; fxi++)
             {
-                TempValues.Add(CurrentPlayer.HandCardValues[AllPossibleHand[i][j]]);
-                TempSuits.Add(CurrentPlayer.HandCardSuits[AllPossibleHand[i][j]]);
+                TempValues.Add(CurrentPlayer.HandCardValues[AllPossibleHand[i][fxi]]);
+                TempSuits.Add(CurrentPlayer.HandCardSuits[AllPossibleHand[i][fxi]]);
             }
             AllPossibleScores.Add(Rank.CurrentHandRankScore(TempValues, TempSuits));
         }
         string MaxScore = AllPossibleScores[0];
-        for(int i = 1; i < 21; i++)
+for(int ieo = 1; ieo < 21; ieo++)
         {
-            if (this.Rank.CompareRank(MaxScore, AllPossibleScores[i]) == 1)
+            if (this.Rank.CompareRank(MaxScore, AllPossibleScores[ieo]) == 1)
                 continue;
-            else if (this.Rank.CompareRank(MaxScore, AllPossibleScores[i]) == 0)
+            else if (this.Rank.CompareRank(MaxScore, AllPossibleScores[ieo]) == 0)
                 continue;
-            else if (this.Rank.CompareRank(MaxScore, AllPossibleScores[i]) == -1)
-                MaxScore = AllPossibleScores[i];
+            else if (this.Rank.CompareRank(MaxScore, AllPossibleScores[ieo]) == -1)
+                MaxScore = AllPossibleScores[ieo];
         }
         return MaxScore;
     }
@@ -111,7 +111,7 @@ public class SevenCardGameControl : GameControl
         this.CurrentMoneyText.text = "Money: " + StaticVar.Money;
         SevenPlayer.PlayerSelectValue.Clear();
         SevenPlayer.PlayerSelectSuit.Clear();
-        foreach (var item in SevenPlayer.HandCard)
+foreach (var item in SevenPlayer.HandCard)
             item.GetComponent<SpriteRenderer>().color = Color.white;
         this.ConfirmButton.interactable = true;
     }

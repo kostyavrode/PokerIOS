@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
@@ -9,7 +9,7 @@ public class HandRank : MonoBehaviour
     public string CurrentHandRankScore(List<int> values, List<string> suits)
     {
         string score;
-        for (int i = 0; i < values.Count; i++)
+for (int i = 0; i < values.Count; i++)
             if (values[i] == 1)
                 values[i] = 14;
         values.Sort();
@@ -27,7 +27,7 @@ public class HandRank : MonoBehaviour
             else
             {
                 score = "6";
-                for (int i = values.Count - 1; i >= 0; i--)
+for (int i = values.Count - 1; i >= 0; i--)
                     if(values[i] < 10)
                         score += "0"+ values[i].ToString();
                 else
@@ -102,11 +102,11 @@ public class HandRank : MonoBehaviour
                             else
                             {                                
                                 score = "1";
-                                for (int i = values.Count - 1; i >= 0; i--)
-                                    if (values[i] < 10)
-                                        score += "0" + values[i].ToString();
+for (int ieo = values.Count - 1; ieo >= 0; ieo--)
+                                    if (values[ieo] < 10)
+                                        score += "0" + values[ieo].ToString();
                                     else
-                                        score += values[i].ToString();
+                                        score += values[ieo].ToString();
                                 return score;
                             }
                         }
@@ -213,4 +213,3 @@ public class HandRank : MonoBehaviour
     
 }
     
-
