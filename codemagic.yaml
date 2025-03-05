@@ -13,7 +13,7 @@ workflows:
         - UNITY
       vars:
         BUILD_SCRIPT: BuildIos
-        UNITY_VERSION: "6000.0.39f1"
+        UNITY_VERSION: "6000.0.32f1"
         UNITY_IOS_DIR: ios
         XCODE_PROJECT: "Unity-iPhone.xcodeproj"
         XCODE_SCHEME: "Unity-iPhone"
@@ -42,18 +42,27 @@ workflows:
 
       - name: Install Unity $UNITY_VERSION
         script: |
-          "/Applications/Unity Hub.app/Contents/MacOS/Unity Hub" -- --headless install --version $UNITY_VERSION --module ios
+          echo "Installing Unity $UNITY_VERSION..."
+          curl -o Unity.pkg https://download.unity3d.com/download_unity/6000.0.32f1/MacEditorInstaller/Unity.pkg
+          sudo installer -pkg Unity.pkg -target /
+          rm Unity.pkg
+          echo "Unity installed successfully."
 
-      - name: Check Unity Installation
+      - name: Check Installed Unity Versions
         script: |
-          echo "Installed Unity versions:"
+          echo "Checking installed Unity versions..."
           ls -la /Applications/Unity/Hub/Editor/
+          ls -la /Applications/Unity/
 
       - name: Generate the Xcode project from Unity
         script: |
-          UNITY_PATH=$(ls /Applications/Unity/Hub/Editor/ | tail -n 1)
-          echo "Using Unity version: $UNITY_PATH"
-          /Applications/Unity/Hub/Editor/$UNITY_PATH/Unity.app/Contents/MacOS/Unity -batchmode \
+          UNITY_PATH="/Applications/Unity"
+          if [ ! -d "$UNITY_PATH" ]; then
+            echo "Unity is not installed!"
+            exit 1
+          fi
+          echo "Using Unity from $UNITY_PATH"
+          "$UNITY_PATH/Unity.app/Contents/MacOS/Unity" -batchmode \
             -quit \
             -logFile \
             -projectPath . \
