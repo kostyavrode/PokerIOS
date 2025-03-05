@@ -8,7 +8,7 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.offline.playing.cards
+        bundle_identifier: com.OfflinePlayingcards
       groups:
         - unity_credentials
       vars:
