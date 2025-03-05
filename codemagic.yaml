@@ -10,7 +10,7 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.OfflinePlayingcards
       groups:
-        - unity_credentials
+        - UNITY
       vars:
         BUILD_SCRIPT: BuildIos
         UNITY_IOS_DIR: ios
@@ -89,7 +89,7 @@ workflows:
       android_signing:
         - keystore_reference
       groups:
-        - unity_credentials
+        - UNITY
         - google_play
       vars:
         BUILD_SCRIPT: BuildAndroid
@@ -145,7 +145,7 @@ workflows:
     instance_type: windows_x2
     environment:
       groups:
-        - unity_credentials
+        - UNITY
       vars:
         BUILD_SCRIPT: BuildWindows
     scripts:
@@ -190,7 +190,7 @@ workflows:
       android_signing:
         - keystore_reference
       groups:
-        - unity_credentials
+        - UNITY
         - google_play
       vars:
         BUILD_SCRIPT: BuildAndroid
@@ -239,7 +239,7 @@ workflows:
     name: Unity Mac Workflow
     environment:
       groups:
-        - unity_credentials
+        - UNITY
         - appstore_credentials
       vars:
         BUILD_SCRIPT: BuildMac
