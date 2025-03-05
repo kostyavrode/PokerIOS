@@ -1,115 +1,26 @@
 workflows:
-  unity-ios-workflow:
-    name: Unity iOS Workflow
-    instance_type: mac_mini_m2
-    max_build_duration: 120
-    integrations:
-      app_store_connect: APP
-    environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.OfflinePlayingcards
-      groups:
-        - UNITY
-      vars:
-        BUILD_SCRIPT: BuildIos
-        UNITY_VERSION: "6000.0.32f1"
-        UNITY_IOS_DIR: ios
-        XCODE_PROJECT: "Unity-iPhone.xcodeproj"
-        XCODE_SCHEME: "Unity-iPhone"
-        APP_STORE_APP_ID: 1555555551
-      cocoapods: default
-    scripts:
-      - name: Install Unity Hub
-        script: |
-          curl -s https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.dmg -o UnityHubSetup.dmg
-          hdiutil attach UnityHubSetup.dmg
-          sudo cp -R "/Volumes/Unity Hub/Unity Hub.app" /Applications/
-          hdiutil detach "/Volumes/Unity Hub"
-          if [ ! -f "/Applications/Unity Hub.app/Contents/MacOS/Unity Hub" ]; then
-            echo "Unity Hub installation failed!"
-            exit 1
-          fi
-          echo "Unity Hub installed successfully."
-
-      - name: Activate Unity License
-        script: |
-          /Applications/Unity\ Hub.app/Contents/Frameworks/UnityLicensingClient_V1.app/Contents/MacOS/Unity.Licensing.Client \
-            --activate-ulf \
-            --serial ${UNITY_SERIAL?} \
-            --username ${UNITY_EMAIL?} \
-            --password ${UNITY_PASSWORD?}
-
-      - name: Install Unity $UNITY_VERSION
-        script: |
-          echo "Installing Unity $UNITY_VERSION..."
-          curl -o Unity.pkg https://download.unity3d.com/download_unity/6000.0.32f1/MacEditorInstaller/Unity.pkg
-          sudo installer -pkg Unity.pkg -target /
-          rm Unity.pkg
-          echo "Unity installed successfully."
-
-      - name: Check Installed Unity Versions
-        script: |
-          echo "Checking installed Unity versions..."
-          ls -la /Applications/Unity/Hub/Editor/
-          ls -la /Applications/Unity/
-
-      - name: Generate the Xcode project from Unity
-        script: |
-          UNITY_PATH="/Applications/Unity"
-          if [ ! -d "$UNITY_PATH" ]; then
-            echo "Unity is not installed!"
-            exit 1
-          fi
-          echo "Using Unity from $UNITY_PATH"
-          "$UNITY_PATH/Unity.app/Contents/MacOS/Unity" -batchmode \
-            -quit \
-            -logFile \
-            -projectPath . \
-            -executeMethod BuildScript.$BUILD_SCRIPT \
-            -nographics
-
-      - name: Set up code signing settings on Xcode project
-        script: |
-          xcode-project use-profiles
-
-      - name: Increment build number
-        script: |
-          BUILD_NUMBER=($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APP_ID") + 1)
-          cd $UNITY_IOS_DIR
-          agvtool new-version -all $BUILD_NUMBER
-
-      - name: Build ipa for distribution
-        script: |
-          xcode-project build-ipa \
-            --project "$UNITY_IOS_DIR/$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
-
-    artifacts:
-      - build/ios/ipa/*.ipa
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
-
-    publishing:
+  unity-mac-workflow:
+      # Building Unity on macOS requires special instance type which is available upon request
+      name: Unity Mac Workflow
+      environment:
+        groups:
+          # Add the group environment variables in Codemagic UI (either in Application/Team variables) - https://docs.codemagic.io/variables/environment-variable-groups/
+          - unity # <-- (Includes UNITY_SERIAL, UNITY_USERNAME, UNITY_PASSWORD)
+        vars:
+          UNITY_BIN: $UNITY_HOME/Contents/MacOS/Unity
+          TEST_REPORT_PATH: tests.xml
       scripts:
-        - name: Deactivate Unity License
-          script: | 
-            /Applications/Unity\ Hub.app/Contents/Frameworks/UnityLicensingClient_V1.app/Contents/MacOS/Unity.Licensing.Client \
-              --return-ulf \
-              --username ${UNITY_EMAIL?} \
-              --password ${UNITY_PASSWORD?}
-
-      email:
-        recipients:
-          - user_1@example.com
-          - user_2@example.com
-        notify:
-          success: true
-          failure: false
-
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true 
-        beta_groups:
-          - group name 1
-          - group name 2
-        submit_to_app_store: true
+        - name: Activate License
+          script: $UNITY_BIN -batchmode -quit -logFile -serial ${UNITY_SERIAL?} -username ${UNITY_USERNAME?} -password ${UNITY_PASSWORD?}
+        - name: Run Unit Tests
+          script: $UNITY_BIN -batchmode -executeMethod Runner.RunUnitTests -logFile -nographics -projectPath . -testsOutput ${TEST_REPORT_PATH}
+          test_report: ${TEST_REPORT_PATH}
+        - name: Build
+          script: $UNITY_BIN -batchmode -quit -logFile -projectPath . -executeMethod BuildScript.BuildMac -nographics
+      artifacts:
+        - "mac/UnitTestingPong.app"
+        - ${TEST_REPORT_PATH}
+      publishing:
+        scripts:
+          - name: Deactivate License
+            script: $UNITY_BIN -batchmode -quit -returnlicense -nographics
