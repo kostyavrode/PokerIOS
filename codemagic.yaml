@@ -26,7 +26,11 @@ workflows:
           hdiutil attach UnityHubSetup.dmg
           sudo cp -R "/Volumes/Unity Hub/Unity Hub.app" /Applications/
           hdiutil detach "/Volumes/Unity Hub"
-          open -a "Unity Hub"
+          if [ ! -f "/Applications/Unity Hub.app/Contents/MacOS/Unity Hub" ]; then
+            echo "Unity Hub installation failed!"
+            exit 1
+          fi
+          echo "Unity Hub installed successfully."
 
       - name: Activate Unity License
         script: |
@@ -38,7 +42,7 @@ workflows:
 
       - name: Install Unity $UNITY_VERSION
         script: |
-          /Applications/Unity\ Hub.app/Contents/MacOS/UnityHub -- --headless install --version $UNITY_VERSION --module ios
+          "/Applications/Unity Hub.app/Contents/MacOS/Unity Hub" -- --headless install --version $UNITY_VERSION --module ios
 
       - name: Generate the Xcode project from Unity
         script: |
