@@ -13,7 +13,7 @@ workflows:
         - UNITY
       vars:
         BUILD_SCRIPT: BuildIos
-        UNITY_VERSION: "6.0.39f1"
+        UNITY_VERSION: "6000.0.39f1"
         UNITY_IOS_DIR: ios
         XCODE_PROJECT: "Unity-iPhone.xcodeproj"
         XCODE_SCHEME: "Unity-iPhone"
@@ -44,9 +44,16 @@ workflows:
         script: |
           "/Applications/Unity Hub.app/Contents/MacOS/Unity Hub" -- --headless install --version $UNITY_VERSION --module ios
 
+      - name: Check Unity Installation
+        script: |
+          echo "Installed Unity versions:"
+          ls -la /Applications/Unity/Hub/Editor/
+
       - name: Generate the Xcode project from Unity
         script: |
-          /Applications/Unity/Hub/Editor/$UNITY_VERSION/Unity.app/Contents/MacOS/Unity -batchmode \
+          UNITY_PATH=$(ls /Applications/Unity/Hub/Editor/ | tail -n 1)
+          echo "Using Unity version: $UNITY_PATH"
+          /Applications/Unity/Hub/Editor/$UNITY_PATH/Unity.app/Contents/MacOS/Unity -batchmode \
             -quit \
             -logFile \
             -projectPath . \
