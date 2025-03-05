@@ -13,42 +13,61 @@ workflows:
         - UNITY
       vars:
         BUILD_SCRIPT: BuildIos
+        UNITY_VERSION: "6.0.39f1"
         UNITY_IOS_DIR: ios
         XCODE_PROJECT: "Unity-iPhone.xcodeproj"
         XCODE_SCHEME: "Unity-iPhone"
         APP_STORE_APP_ID: 1555555551
       cocoapods: default
     scripts:
+      - name: Install Unity Hub
+        script: |
+          curl -s https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.dmg -o UnityHubSetup.dmg
+          hdiutil attach UnityHubSetup.dmg
+          sudo cp -R "/Volumes/Unity Hub/Unity Hub.app" /Applications/
+          hdiutil detach "/Volumes/Unity Hub"
+          open -a "Unity Hub"
+
+      - name: Install Unity $UNITY_VERSION
+        script: |
+          /Applications/Unity\ Hub.app/Contents/MacOS/UnityHub -- --headless install --version $UNITY_VERSION --module ios
+
       - name: Activate Unity License
         script: |
-          $UNITY_HOME/Unity.app/Contents/MacOS/Unity -batchmode -quit -logFile \
+          /Applications/Unity/Hub/Editor/$UNITY_VERSION/Unity.app/Contents/MacOS/Unity -batchmode -quit -logFile \
             -serial ${UNITY_SERIAL?} \
             -username ${UNITY_EMAIL?} \
             -password ${UNITY_PASSWORD?}
+
       - name: Generate the Xcode project from Unity
         script: |
-          $UNITY_HOME/Unity.app/Contents/MacOS/Unity -batchmode \
+          /Applications/Unity/Hub/Editor/$UNITY_VERSION/Unity.app/Contents/MacOS/Unity -batchmode \
             -quit \
             -logFile \
             -projectPath . \
             -executeMethod BuildScript.$BUILD_SCRIPT \
             -nographics
+
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
+
       - name: Increment build number
         script: |
           BUILD_NUMBER=($(app-store-connect get-latest-app-store-build-number "$APP_ID") + 1)
           cd $UNITY_IOS_DIR
           agvtool new-version -all $BUILD_NUMBER
+
       - name: Build ipa for distribution
         script: |
           xcode-project build-ipa \
             --project "$UNITY_IOS_DIR/$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME"
+
     artifacts:
       - build/ios/ipa/*.ipa
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
     publishing:
       scripts:
         - name: Deactivate Unity License
@@ -57,6 +76,7 @@ workflows:
             --return-ulf \
             --username ${UNITY_EMAIL?} \
             --password ${UNITY_PASSWORD?}
+
       email:
         recipients:
           - user_1@example.com
@@ -64,19 +84,11 @@ workflows:
         notify:
           success: true
           failure: false
+
       app_store_connect:
         auth: integration
-        #
-        # Configuration related to TestFlight (optional)
-        # Note: This action is performed during post-processing.
         submit_to_testflight: true 
-        #
-        # Specify the names of beta tester groups that will get access 
-        # to the build once it has passed beta review.
         beta_groups:
           - group name 1
           - group name 2
-        #
-        # Configuration related to App Store (optional)
-        # Note: This action is performed during post-processing.
         submit_to_app_store: true
