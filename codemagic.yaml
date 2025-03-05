@@ -31,7 +31,7 @@ workflows:
       - name: Activate Unity License
         script: |
           /Applications/Unity\ Hub.app/Contents/Frameworks/UnityLicensingClient_V1.app/Contents/MacOS/Unity.Licensing.Client \
-            --acquire-ulf \
+            --activate-ulf \
             --serial ${UNITY_SERIAL?} \
             --username ${UNITY_EMAIL?} \
             --password ${UNITY_PASSWORD?}
