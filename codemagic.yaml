@@ -10,7 +10,7 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.OfflinePlayingcards
       groups:
-        - unity_credentials
+        - UNITY
       vars:
         BUILD_SCRIPT: BuildIos
         UNITY_IOS_DIR: ios
@@ -85,7 +85,7 @@ workflows:
     name: Unity Mac Workflow
     environment:
       groups:
-        - unity_credentials
+        - UNITY
         - appstore_credentials
       vars:
         BUILD_SCRIPT: BuildMac
