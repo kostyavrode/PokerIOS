@@ -17,7 +17,7 @@ workflows:
         XCODE_PROJECT: "Unity-iPhone.xcodeproj"
         XCODE_SCHEME: "Unity-iPhone"
         BUNDLE_ID: "com.OfflinePlayingcards"
-        APP_STORE_APPLE_ID: 1555555551
+        APP_STORE_APPLE_ID: 6742623321
     scripts:
       - name: Activate Unity license
         script: | 
