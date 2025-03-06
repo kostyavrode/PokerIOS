@@ -5,6 +5,8 @@ workflows:
     integrations:
       app_store_connect: APP
     environment:
+    unity: 2023.1.17f1;
+    xcode: 15.4
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.OfflinePlayingcards
