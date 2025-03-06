@@ -5,9 +5,9 @@ workflows:
     integrations:
       app_store_connect: APP
     environment:
-    unity: 2023.1.17f1
-    xcode: 15.4
-    ios_signing:
+      unity: 2023.1.17f1
+      xcode: 15.4
+      ios_signing:
         distribution_type: app_store
         bundle_identifier: com.OfflinePlayingcards
       groups:
@@ -66,17 +66,8 @@ workflows:
           failure: false
       app_store_connect:
         auth: integration
-        #
-        # Configuration related to TestFlight (optional)
-        # Note: This action is performed during post-processing.
-        submit_to_testflight: true 
-        #
-        # Specify the names of beta tester groups that will get access 
-        # to the build once it has passed beta review.
+        submit_to_testflight: true
         beta_groups:
           - group name 1
           - group name 2
-        #
-        # Configuration related to App Store (optional)
-        # Note: This action is performed during post-processing.
         submit_to_app_store: true
