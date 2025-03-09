@@ -3,20 +3,9 @@ name: Build and Upload iOS to App Store
 on: [push, pull_request]
 
 jobs:
-  buildForAllSupportedPlatforms:
-    name: Build for ${{ matrix.targetPlatform }}
+  build-ios:
+    name: Build iOS in Unity
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        targetPlatform:
-          - StandaloneOSX
-          - StandaloneWindows
-          - StandaloneWindows64
-          - StandaloneLinux64
-          - iOS
-          - Android
-          - WebGL
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,43 +14,71 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: Library
-          key: Library-${{ matrix.targetPlatform }}
+          key: Library-iOS
           restore-keys: Library-
-      - if: matrix.targetPlatform == 'Android'
-        uses: jlumbroso/free-disk-space@v1.3.1
       - uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          targetPlatform: ${{ matrix.targetPlatform }}
+          targetPlatform: iOS
+          buildMethod: IOSBuild.BuildIos
       - uses: actions/upload-artifact@v4
         with:
-          name: Build-${{ matrix.targetPlatform }}
-          path: build/${{ matrix.targetPlatform }}
-
-  upload-ios-to-app-store:
-    name: Upload iOS Build to App Store
-    runs-on: macos-latest
-    needs: buildForAllSupportedPlatforms
-    if: always()
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Download iOS Build Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: Build-iOS
+          name: Unity-iOS-XcodeProject
           path: build/iOS
 
-      - name: Install Transporter (if needed)
+  export-ipa:
+    name: Export .ipa from Xcode
+    runs-on: macos-latest
+    needs: build-ios
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Unity Build
+        uses: actions/download-artifact@v4
+        with:
+          name: Unity-iOS-XcodeProject
+          path: build/iOS
+
+      - name: Install Dependencies
         run: |
-          if ! command -v xcrun altool &> /dev/null; then
-            echo "Installing Transporter..."
-            brew install fastlane
-          fi
+          sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+          brew install fastlane
+
+      - name: Build and Export .ipa
+        env:
+          EXPORT_OPTIONS_PLIST: "exportOptions.plist"
+        run: |
+          cd build/iOS
+          xcodebuild -workspace Unity-iPhone.xcworkspace \
+                     -scheme Unity-iPhone \
+                     -sdk iphoneos \
+                     -configuration Release \
+                     -archivePath build/Unity.xcarchive \
+                     archive
+
+          xcodebuild -exportArchive \
+                     -archivePath build/Unity.xcarchive \
+                     -exportPath build \
+                     -exportOptionsPlist $EXPORT_OPTIONS_PLIST
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iOS-ipa
+          path: build/iOS/*.ipa
+
+  upload-to-app-store:
+    name: Upload iOS Build to App Store
+    runs-on: macos-latest
+    needs: export-ipa
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download .ipa Build
+        uses: actions/download-artifact@v4
+        with:
+          name: iOS-ipa
+          path: build/iOS
 
       - name: Upload to App Store
         env:
@@ -70,4 +87,6 @@ jobs:
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: |
           echo "${APP_STORE_CONNECT_PRIVATE_KEY}" > AuthKey.p8
-          xcrun altool --upload-app -f "build/iOS/iOS.ipa" -t ios --apiKey ${APP_STORE_CONNECT_KEY_ID} --apiIssuer ${APP_STORE_CONNECT_ISSUER_ID}
+          xcrun altool --upload-app -f "build/iOS/*.ipa" -t ios \
+                       --apiKey ${APP_STORE_CONNECT_KEY_ID} \
+                       --apiIssuer ${APP_STORE_CONNECT_ISSUER_ID}
