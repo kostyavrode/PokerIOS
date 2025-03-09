@@ -83,19 +83,23 @@ public static class BuildScript
         Debug.Log("Built Android");
     }
 
-    [MenuItem("Build/Build iOS")]
-    public static void BuildIos()
-    {
-        BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
-        buildPlayerOptions.locationPathName = "ios";
-        buildPlayerOptions.target = BuildTarget.iOS;
-        buildPlayerOptions.options = BuildOptions.None;
-        buildPlayerOptions.scenes = GetScenes();
+[MenuItem("Build/Build iOS")]
+public static void BuildIos()
+{
+    BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
+    buildPlayerOptions.locationPathName = "ios"; // Указываем папку для Xcode-проекта
+    buildPlayerOptions.target = BuildTarget.iOS;
+    buildPlayerOptions.options = BuildOptions.None;
+    buildPlayerOptions.scenes = GetScenes();
 
-        Debug.Log("Building iOS");
-        BuildPipeline.BuildPlayer(buildPlayerOptions);
-        Debug.Log("Built iOS");
-    }
+    Debug.Log("Building iOS...");
+    EditorUserBuildSettings.symlinkLibraries = false;  // Отключает симлинки, чтобы Xcode-проект был корректным
+    EditorUserBuildSettings.iOSXcodeBuildConfig = XcodeBuildConfig.Release; // Убеждаемся, что билд идет в Release
+    EditorUserBuildSettings.exportAsXcodeProject = true; // 🚀 ВАЖНО: Экспортируем как Xcode-проект
+
+    BuildPipeline.BuildPlayer(buildPlayerOptions);
+    Debug.Log("✅ Built iOS");
+}
 
     [MenuItem("Build/Build Windows")]
     public static void BuildWindows()
