@@ -24,15 +24,6 @@ workflows:
           echo "Clearing Unity Library folder..."
           rm -rf Library/ && rm -rf Logs/
 
-      - name: Install Unity Packages
-        script: |
-          echo "Forcing Unity to resolve packages..."
-          $UNITY_HOME/Contents/MacOS/Unity -batchmode \
-            -projectPath . \
-            -executeMethod UnityEditor.PackageManager.Client.Resolve \
-            -logFile \
-            -quit
-
       - name: Activate Unity license
         script: | 
           $UNITY_HOME/Contents/MacOS/Unity -batchmode -quit -logFile \
