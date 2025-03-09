@@ -1,0 +1,18 @@
+using UnityEditor;
+using UnityEngine;
+
+public static class IOSBuild
+{
+    [MenuItem("Build/Build iOS")]
+    public static void BuildIos()
+    {
+        BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
+        buildPlayerOptions.scenes = new[] { "Assets/Scenes/Main.unity" }; 
+        buildPlayerOptions.locationPathName = "build/iOS";
+        buildPlayerOptions.target = BuildTarget.iOS;
+        buildPlayerOptions.options = BuildOptions.None;
+
+        BuildPipeline.BuildPlayer(buildPlayerOptions);
+        Debug.Log("✅ iOS Build Completed");
+    }
+}
