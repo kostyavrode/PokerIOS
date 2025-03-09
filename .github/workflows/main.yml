@@ -27,13 +27,6 @@ jobs:
           mv Offline_Playing_cards.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
           echo "✅ Provisioning profile installed"
 
-      - name: Get Provisioning Profile UUID
-        run: |
-          UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/Offline_Playing_cards.mobileprovision | \
-                plutil -extract UUID raw -)
-          echo "Provisioning Profile UUID: $UUID"
-          echo "PROVISIONING_PROFILE_UUID=$UUID" >> $GITHUB_ENV
-
       - name: Build Xcode Project from Unity
         uses: game-ci/unity-builder@v4
         env:
@@ -42,7 +35,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: iOS
-          buildMethod: IOSBuild.BuildIos
+          buildMethod: IOSBuild.BuildIos  # Класс, который вызывает билдер в Unity
           buildName: Unity-iPhone
           buildPath: build/iOS
 
@@ -54,6 +47,12 @@ jobs:
           fi
           echo "✅ Xcode project found."
 
+      - name: Get Provisioning Profile UUID
+        run: |
+          PROFILE_UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/Offline_Playing_cards.mobileprovision | plutil -extract UUID raw -)
+          echo "Provisioning Profile UUID: $PROFILE_UUID"
+          echo "PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
+
       - name: Archive Xcode Project
         run: |
           cd build/iOS
@@ -63,8 +62,7 @@ jobs:
                      -configuration Release \
                      -archivePath output/Unity.xcarchive \
                      CODE_SIGN_STYLE=Manual \
-                     CODE_SIGN_IDENTITY="Apple Distribution" \
-                     DEVELOPMENT_TEAM=DZQ3N8RG49 \
+                     DEVELOPMENT_TEAM=${{ secrets.APPLE_DEVELOPER_TEAM_ID }} \
                      PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_UUID" \
                      archive
 
