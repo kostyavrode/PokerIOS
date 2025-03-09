@@ -72,6 +72,17 @@ workflows:
           BUILD_NUMBER=($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID") + 1)
           cd $UNITY_IOS_DIR
           agvtool new-version -all $BUILD_NUMBER
+          
+      - name: Debug build location
+        script: |
+          echo "Checking IPA location..."
+          find $UNITY_IOS_DIR -name "*.ipa"
+          echo "Checking dSYM location..."
+          find $HOME/Library/Developer/Xcode/DerivedData -name "*.dSYM"
+          
+      - name: Check code signing certificates
+        script: |
+          security find-identity -v -p codesigning          
 
       - name: Build the project
         script: | 
