@@ -19,6 +19,7 @@ workflows:
         XCODE_SCHEME: "Unity-iPhone"
         BUNDLE_ID: "com.OfflinePlayingcards"
         APP_STORE_APPLE_ID: 6742623321
+
     scripts:
       - name: Activate Unity license
         script: | 
@@ -43,6 +44,23 @@ workflows:
             exit 1
           fi
           echo "✅ Xcode project found."
+
+      - name: Verify xcconfig files exist
+        script: |
+          if [ ! -f "$UNITY_IOS_DIR/Pods/Target Support Files/Pods-Unity-iPhone/Pods-Unity-iPhone.debug.xcconfig" ]; then
+            echo "❌ ERROR: xcconfig files missing!"
+            exit 1
+          fi
+          echo "✅ xcconfig files found."
+
+      - name: Install CocoaPods dependencies (if Podfile exists)
+        script: |
+          if [ -f "$UNITY_IOS_DIR/Podfile" ]; then
+            cd $UNITY_IOS_DIR
+            pod install
+          else
+            echo "ℹ️ No Podfile found, skipping pod install"
+          fi
 
       - name: Set up code signing settings on Xcode project
         script: | 
