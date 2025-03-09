@@ -57,7 +57,7 @@ jobs:
                      -archivePath output/Unity.xcarchive \
                      CODE_SIGN_STYLE=Manual \
                      DEVELOPMENT_TEAM=DZQ3N8RG49 \
-                     PROVISIONING_PROFILE="Offline Playing cards" \
+                     PROVISIONING_PROFILE_SPECIFIER="Offline Playing cards" \
                      archive
 
       - name: Export .ipa
