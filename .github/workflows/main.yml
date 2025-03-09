@@ -39,6 +39,7 @@ jobs:
             exit 1
           fi
           echo "✅ Xcode project found."
+          
 
       - name: Archive Xcode Project
         run: |
@@ -48,7 +49,11 @@ jobs:
                      -sdk iphoneos \
                      -configuration Release \
                      -archivePath output/Unity.xcarchive \
+                     CODE_SIGN_STYLE=Manual \
+                     DEVELOPMENT_TEAM=DZQ3N8RG49 \
+                     PROVISIONING_PROFILE_SPECIFIER="Offline Playing cards" \
                      archive
+
 
       - name: Export .ipa
         run: |
