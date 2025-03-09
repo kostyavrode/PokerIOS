@@ -15,6 +15,7 @@ workflows:
       vars:
         UNITY_IOS_DIR: ios
         XCODE_PROJECT: "Unity-iPhone.xcodeproj"
+        XCODE_WORKSPACE: "Unity-iPhone.xcworkspace"
         XCODE_SCHEME: "Unity-iPhone"
         BUNDLE_ID: "com.OfflinePlayingcards"
         APP_STORE_APPLE_ID: 6742623321
@@ -25,6 +26,7 @@ workflows:
             -serial ${UNITY_SERIAL} \
             -username ${UNITY_EMAIL} \
             -password ${UNITY_PASSWORD}
+
       - name: Generate the Xcode project from Unity
         script: | 
           $UNITY_HOME/Contents/MacOS/Unity -batchmode \
@@ -33,22 +35,46 @@ workflows:
             -projectPath . \
             -executeMethod BuildScript.BuildIos \
             -nographics
+
+      - name: Verify Xcode project exists
+        script: |
+          if [ ! -d "$UNITY_IOS_DIR/$XCODE_PROJECT" ]; then
+            echo "❌ ERROR: Xcode project not found!"
+            exit 1
+          fi
+          echo "✅ Xcode project found."
+
+      - name: Install pods
+        script: | 
+          cd $UNITY_IOS_DIR
+          pod install
+
       - name: Set up code signing settings on Xcode project
         script: | 
           xcode-project use-profiles
+
       - name: Set the build number
         script: | 
           BUILD_NUMBER=($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID") + 1)
           cd $UNITY_IOS_DIR
           agvtool new-version -all $BUILD_NUMBER
+
       - name: Build the project
         script: | 
-          xcode-project build-ipa \
-            --project "$UNITY_IOS_DIR/$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
+          if [ -f "$UNITY_IOS_DIR/$XCODE_WORKSPACE" ]; then
+            xcode-project build-ipa \
+              --workspace "$UNITY_IOS_DIR/$XCODE_WORKSPACE" \
+              --scheme "$XCODE_SCHEME"
+          else
+            xcode-project build-ipa \
+              --project "$UNITY_IOS_DIR/$XCODE_PROJECT" \
+              --scheme "$XCODE_SCHEME"
+          fi
+
     artifacts:
       - build/ios/ipa/*.ipa
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
     publishing:
       scripts:
         - name: Deactivate Unity License
@@ -57,6 +83,7 @@ workflows:
             --return-ulf \
             --username ${UNITY_EMAIL} \
             --password ${UNITY_PASSWORD}
+
       email:
         recipients:
           - user_1@example.com
@@ -64,6 +91,7 @@ workflows:
         notify:
           success: true
           failure: false
+
       app_store_connect:
         auth: integration
         #
