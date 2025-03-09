@@ -39,7 +39,13 @@ jobs:
             exit 1
           fi
           echo "✅ Xcode project found."
-          
+
+      - name: Decode and Install Provisioning Profile
+        run: |
+          echo "${{ secrets.IOS_PROVISION_PROFILE }}" | base64 --decode > Offline_Playing_cards.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          mv Offline_Playing_cards.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          echo "✅ Provisioning profile installed"
 
       - name: Archive Xcode Project
         run: |
@@ -51,9 +57,8 @@ jobs:
                      -archivePath output/Unity.xcarchive \
                      CODE_SIGN_STYLE=Manual \
                      DEVELOPMENT_TEAM=DZQ3N8RG49 \
-                     PROVISIONING_PROFILE_SPECIFIER="Offline Playing cards" \
+                     PROVISIONING_PROFILE="Offline Playing cards" \
                      archive
-
 
       - name: Export .ipa
         run: |
