@@ -45,7 +45,7 @@ jobs:
     name: Upload iOS Build to App Store
     runs-on: macos-latest
     needs: buildForAllSupportedPlatforms
-    if: contains(matrix.targetPlatform, 'iOS')
+    if: always()
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
