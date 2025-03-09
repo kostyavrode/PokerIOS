@@ -43,9 +43,7 @@ workflows:
           agvtool new-version -all $BUILD_NUMBER
       - name: Build the project
         script: | 
-          xcode-project build-ipa \
-            --project "$UNITY_IOS_DIR/$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
+        xcode-project build-ipa --project "$UNITY_IOS_DIR/$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
       - $HOME/Library/Developer/Xcode/DerivedData//Build//*.dSYM
