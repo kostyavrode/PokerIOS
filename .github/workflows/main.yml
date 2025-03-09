@@ -43,7 +43,7 @@ jobs:
       - name: Archive Xcode Project
         run: |
           cd build/iOS
-          xcodebuild -workspace Unity-iPhone.xcodeproj \
+          xcodebuild -project Unity-iPhone.xcodeproj \
                      -scheme Unity-iPhone \
                      -sdk iphoneos \
                      -configuration Release \
