@@ -6,7 +6,7 @@ workflows:
       app_store_connect: APP
     environment:
       unity: 2023.1.17f1
-      xcode: 15.0
+      xcode: 15.4
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.OfflinePlayingcards
@@ -15,11 +15,9 @@ workflows:
       vars:
         UNITY_IOS_DIR: ios
         XCODE_PROJECT: "Unity-iPhone.xcodeproj"
-        XCODE_WORKSPACE: "Unity-iPhone.xcworkspace"
         XCODE_SCHEME: "Unity-iPhone"
         BUNDLE_ID: "com.OfflinePlayingcards"
         APP_STORE_APPLE_ID: 6742623321
-
     scripts:
       - name: Activate Unity license
         script: | 
@@ -40,27 +38,30 @@ workflows:
       - name: Verify Xcode project exists
         script: |
           if [ ! -d "$UNITY_IOS_DIR/$XCODE_PROJECT" ]; then
-            echo "❌ ERROR: Xcode project not found!"
+            echo "❌ ERROR: Xcode project not found at $UNITY_IOS_DIR/$XCODE_PROJECT"
             exit 1
           fi
           echo "✅ Xcode project found."
 
-      - name: Verify xcconfig files exist
+      - name: Check available Xcode schemes
         script: |
-          if [ ! -f "$UNITY_IOS_DIR/Pods/Target Support Files/Pods-Unity-iPhone/Pods-Unity-iPhone.debug.xcconfig" ]; then
-            echo "❌ ERROR: xcconfig files missing!"
-            exit 1
-          fi
-          echo "✅ xcconfig files found."
+          cd $UNITY_IOS_DIR
+          xcodebuild -list
 
-      - name: Install CocoaPods dependencies (if Podfile exists)
+      - name: Force generate Xcode schemes if missing
         script: |
-          if [ -f "$UNITY_IOS_DIR/Podfile" ]; then
-            cd $UNITY_IOS_DIR
-            pod install
+          cd $UNITY_IOS_DIR
+          if ! xcodebuild -list | grep -q "$XCODE_SCHEME"; then
+            echo "⚠️ Xcode scheme missing, generating..."
+            xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" -destination 'platform=iOS Simulator,name=iPhone 14' clean build
           else
-            echo "ℹ️ No Podfile found, skipping pod install"
+            echo "✅ Xcode scheme found."
           fi
+
+      - name: Check file permissions
+        script: |
+          ls -la $UNITY_IOS_DIR
+          ls -la $UNITY_IOS_DIR/$XCODE_PROJECT
 
       - name: Set up code signing settings on Xcode project
         script: | 
@@ -74,19 +75,13 @@ workflows:
 
       - name: Build the project
         script: | 
-          if [ -f "$UNITY_IOS_DIR/$XCODE_WORKSPACE" ]; then
-            xcode-project build-ipa \
-              --workspace "$UNITY_IOS_DIR/$XCODE_WORKSPACE" \
-              --scheme "$XCODE_SCHEME"
-          else
-            xcode-project build-ipa \
-              --project "$UNITY_IOS_DIR/$XCODE_PROJECT" \
-              --scheme "$XCODE_SCHEME"
-          fi
+          xcode-project build-ipa \
+            --project "$UNITY_IOS_DIR/$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
 
     artifacts:
       - build/ios/ipa/*.ipa
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+      - $HOME/Library/Developer/Xcode/DerivedData//Build//*.dSYM
 
     publishing:
       scripts:
@@ -107,17 +102,8 @@ workflows:
 
       app_store_connect:
         auth: integration
-        #
-        # Configuration related to TestFlight (optional)
-        # Note: This action is performed during post-processing.
-        submit_to_testflight: true 
-        #
-        # Specify the names of beta tester groups that will get access 
-        # to the build once it has passed beta review.
+        submit_to_testflight: true
         beta_groups:
           - group name 1
           - group name 2
-        #
-        # Configuration related to App Store (optional)
-        # Note: This action is performed during post-processing.
         submit_to_app_store: true
