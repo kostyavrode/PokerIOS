@@ -41,13 +41,6 @@ workflows:
           BUILD_NUMBER=($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID") + 1)
           cd $UNITY_IOS_DIR
           agvtool new-version -all $BUILD_NUMBER
-      - name: Verify Xcode project exists
-        run: |
-          if [ ! -d "ios/Unity-iPhone.xcodeproj" ]; then
-          echo "❌ ERROR: Xcode project not found!"
-          exit 1
-          fi
-          echo "✅ Xcode project found."
       - name: Build the project
         script: | 
           xcode-project build-ipa \
