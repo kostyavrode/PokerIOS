@@ -14,17 +14,32 @@ workflows:
         - UNITY
       vars:
         UNITY_IOS_DIR: ios
-        XCODE_PROJECT: "Unity-iPhone.xcodeproj"
+        XCODE_PROJECT: "ios/Unity-iPhone.xcodeproj"
         XCODE_SCHEME: "Unity-iPhone"
         BUNDLE_ID: "com.OfflinePlayingcards"
         APP_STORE_APPLE_ID: 6742623321
     scripts:
+      - name: Clear Unity Cache
+        script: |
+          echo "Clearing Unity Library folder..."
+          rm -rf Library/ && rm -rf Logs/
+
+      - name: Install Unity Packages
+        script: |
+          echo "Forcing Unity to resolve packages..."
+          $UNITY_HOME/Contents/MacOS/Unity -batchmode \
+            -projectPath . \
+            -executeMethod UnityEditor.PackageManager.Client.Resolve \
+            -logFile \
+            -quit
+
       - name: Activate Unity license
         script: | 
           $UNITY_HOME/Contents/MacOS/Unity -batchmode -quit -logFile \
             -serial ${UNITY_SERIAL} \
             -username ${UNITY_EMAIL} \
             -password ${UNITY_PASSWORD}
+
       - name: Generate the Xcode project from Unity
         script: | 
           $UNITY_HOME/Contents/MacOS/Unity -batchmode \
@@ -33,22 +48,40 @@ workflows:
             -projectPath . \
             -executeMethod BuildScript.BuildIos \
             -nographics
+
+      - name: Check if Xcode project exists
+        script: |
+          if [ -d "$UNITY_IOS_DIR/Unity-iPhone.xcodeproj" ]; then
+            echo "Xcode project exists."
+          else
+            echo "ERROR: Xcode project not found!"
+            exit 1
+          fi
+
+      - name: Show Unity Build Logs
+        script: |
+          cat ~/Library/Logs/Unity/Editor.log | tail -n 50
+
       - name: Set up code signing settings on Xcode project
         script: | 
           xcode-project use-profiles
+
       - name: Set the build number
         script: | 
           BUILD_NUMBER=($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID") + 1)
           cd $UNITY_IOS_DIR
           agvtool new-version -all $BUILD_NUMBER
+
       - name: Build the project
         script: | 
           xcode-project build-ipa \
-            --project "$UNITY_IOS_DIR/$XCODE_PROJECT" \
+            --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME"
+
     artifacts:
       - build/ios/ipa/*.ipa
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
     publishing:
       scripts:
         - name: Deactivate Unity License
@@ -57,6 +90,7 @@ workflows:
             --return-ulf \
             --username ${UNITY_EMAIL} \
             --password ${UNITY_PASSWORD}
+
       email:
         recipients:
           - user_1@example.com
@@ -64,6 +98,7 @@ workflows:
         notify:
           success: true
           failure: false
+
       app_store_connect:
         auth: integration
         submit_to_testflight: true
