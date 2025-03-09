@@ -4,19 +4,24 @@ on: [push, pull_request]
 
 jobs:
   build-ios:
-    name: Build iOS in Unity
-    runs-on: ubuntu-latest
+    name: Build iOS Project
+    runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           lfs: true
-      - uses: actions/cache@v3
+
+      - name: Cache Library
+        uses: actions/cache@v4
         with:
           path: Library
           key: Library-iOS
           restore-keys: Library-
-      - uses: game-ci/unity-builder@v4
+
+      - name: Build Xcode Project from Unity
+        uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
@@ -24,61 +29,61 @@ jobs:
         with:
           targetPlatform: iOS
           buildMethod: IOSBuild.BuildIos
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Unity-iOS-XcodeProject
-          path: build/iOS
+          buildName: Unity-iPhone
+          buildPath: build/iOS
 
-  export-ipa:
-    name: Export .ipa from Xcode
-    runs-on: macos-latest
-    needs: build-ios
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download Unity Build
-        uses: actions/download-artifact@v4
-        with:
-          name: Unity-iOS-XcodeProject
-          path: build/iOS
-
-      - name: Install Dependencies
+      - name: Verify Xcode Project
         run: |
-          sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
-          brew install fastlane
+          if [ ! -d "build/iOS/Unity-iPhone.xcodeproj" ]; then
+            echo "❌ ERROR: Xcode project not found!"
+            exit 1
+          fi
+          echo "✅ Xcode project found."
 
-      - name: Build and Export .ipa
-        env:
-          EXPORT_OPTIONS_PLIST: "exportOptions.plist"
+      - name: Archive Xcode Project
         run: |
           cd build/iOS
           xcodebuild -workspace Unity-iPhone.xcworkspace \
                      -scheme Unity-iPhone \
                      -sdk iphoneos \
                      -configuration Release \
-                     -archivePath build/Unity.xcarchive \
+                     -archivePath output/Unity.xcarchive \
                      archive
 
+      - name: Export .ipa
+        run: |
           xcodebuild -exportArchive \
-                     -archivePath build/Unity.xcarchive \
-                     -exportPath build \
-                     -exportOptionsPlist $EXPORT_OPTIONS_PLIST
+                     -archivePath build/iOS/output/Unity.xcarchive \
+                     -exportPath build/iOS/output \
+                     -exportOptionsPlist exportOptions.plist
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Artifact (iOS IPA)
+        uses: actions/upload-artifact@v4
         with:
-          name: iOS-ipa
-          path: build/iOS/*.ipa
+          name: Build-iOS
+          path: build/iOS/output/Unity.ipa
 
-  upload-to-app-store:
+  upload-ios:
     name: Upload iOS Build to App Store
     runs-on: macos-latest
-    needs: export-ipa
+    needs: build-ios
     steps:
-      - uses: actions/checkout@v4
-      - name: Download .ipa Build
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download iOS Build Artifact
         uses: actions/download-artifact@v4
         with:
-          name: iOS-ipa
-          path: build/iOS
+          name: Build-iOS
+          path: build/iOS/output
+
+      - name: Verify .ipa File
+        run: |
+          if [ ! -f "build/iOS/output/Unity.ipa" ]; then
+            echo "❌ ERROR: .ipa file not found!"
+            exit 1
+          fi
+          echo "✅ .ipa file found."
 
       - name: Upload to App Store
         env:
@@ -87,6 +92,4 @@ jobs:
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: |
           echo "${APP_STORE_CONNECT_PRIVATE_KEY}" > AuthKey.p8
-          xcrun altool --upload-app -f "build/iOS/*.ipa" -t ios \
-                       --apiKey ${APP_STORE_CONNECT_KEY_ID} \
-                       --apiIssuer ${APP_STORE_CONNECT_ISSUER_ID}
+          xcrun altool --upload-app -f "build/iOS/output/Unity.ipa" -t ios --apiKey ${APP_STORE_CONNECT_KEY_ID} --apiIssuer ${APP_STORE_CONNECT_ISSUER_ID}
