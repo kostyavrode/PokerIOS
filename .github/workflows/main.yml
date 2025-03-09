@@ -20,6 +20,20 @@ jobs:
           key: Library-iOS
           restore-keys: Library-
 
+      - name: Decode and Install Provisioning Profile
+        run: |
+          echo "${{ secrets.IOS_PROVISION_PROFILE }}" | base64 --decode > Offline_Playing_cards.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          mv Offline_Playing_cards.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          echo "✅ Provisioning profile installed"
+
+      - name: Get Provisioning Profile UUID
+        run: |
+          UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/Offline_Playing_cards.mobileprovision | \
+                plutil -extract UUID raw -)
+          echo "Provisioning Profile UUID: $UUID"
+          echo "PROVISIONING_PROFILE_UUID=$UUID" >> $GITHUB_ENV
+
       - name: Build Xcode Project from Unity
         uses: game-ci/unity-builder@v4
         env:
@@ -28,7 +42,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: iOS
-          buildMethod: IOSBuild.BuildIos  # Убедись, что Unity найдет этот класс
+          buildMethod: IOSBuild.BuildIos
           buildName: Unity-iPhone
           buildPath: build/iOS
 
@@ -40,13 +54,6 @@ jobs:
           fi
           echo "✅ Xcode project found."
 
-      - name: Decode and Install Provisioning Profile
-        run: |
-          echo "${{ secrets.IOS_PROVISION_PROFILE }}" | base64 --decode > Offline_Playing_cards.mobileprovision
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          mv Offline_Playing_cards.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-          echo "✅ Provisioning profile installed"
-
       - name: Archive Xcode Project
         run: |
           cd build/iOS
@@ -56,8 +63,9 @@ jobs:
                      -configuration Release \
                      -archivePath output/Unity.xcarchive \
                      CODE_SIGN_STYLE=Manual \
+                     CODE_SIGN_IDENTITY="Apple Distribution" \
                      DEVELOPMENT_TEAM=DZQ3N8RG49 \
-                     PROVISIONING_PROFILE_SPECIFIER="Offline Playing cards" \
+                     PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_UUID" \
                      archive
 
       - name: Export .ipa
