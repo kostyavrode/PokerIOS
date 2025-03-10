@@ -1,41 +1,129 @@
-name: Upload iOS App to App Store
+name: Build and Upload iOS to App Store
 
-on:
-  workflow_dispatch:  # Запуск вручную
-  push:
-    tags:
-      - "v*"  # Автоматический запуск при пуше нового тега (например, v1.0.0)
+on: [push, pull_request]
 
 jobs:
-  upload:
-    runs-on: ubuntu-latest
+  build-ios:
+    name: Build iOS Project
+    runs-on: macos-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
+      - name: Checkout Repository
+        uses: actions/checkout@v4
         with:
-          ruby-version: '3.2'  # Убедись, что версия поддерживается Fastlane
-          bundler-cache: true  # Кеширует зависимости
+          fetch-depth: 0
+          lfs: true
 
-      - name: Install Fastlane
+      - name: Clean Git State (Prevent Dirty Branch)
         run: |
-          gem install bundler
-          bundle install
+          git reset --hard
+          git clean -fdx
+          echo "✅ Git workspace cleaned."
 
-      - name: Create API Key File
+      - name: Cache Library
+        uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-iOS-${{ github.sha }}
+          restore-keys: |
+            Library-iOS-
+            Library-
+
+      - name: Decode and Install Provisioning Profile (Saved for later)
         run: |
-          echo "${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}" > AuthKey.p8
-          chmod 600 AuthKey.p8  # Устанавливаем права доступа
+          echo "${{ secrets.IOS_PROVISION_PROFILE }}" | base64 --decode > Offline_Playing_cards.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          mv Offline_Playing_cards.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          echo "✅ Provisioning profile installed"
 
-      - name: Upload IPA to TestFlight
+      - name: Build Xcode Project from Unity
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: iOS
+          buildMethod: IOSBuild.BuildIos
+          buildName: Unity-iPhone
+          buildsPath: build/iOS
+
+      - name: Verify Xcode Project
         run: |
-          bundle exec fastlane pilot upload \
-            --api_key_path AuthKey.p8 \
-            --api_key_id "${{ secrets.APPSTORE_CONNECT_KEY_ID }}" \
-            --issuer_id "${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}" \
-            --ipa "your_app.ipa"
+          if [ ! -d "build/iOS/Unity-iPhone.xcodeproj" ]; then
+            echo "❌ ERROR: Xcode project not found!"
+            exit 1
+          fi
+          echo "✅ Xcode project found."
 
-      - name: Cleanup
-        run: rm -f AuthKey.p8  # Удаляем ключ безопасности после загрузки
+      - name: Decode and Install P12 Certificate (After Unity Build)
+        run: |
+          echo "${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}" | base64 --decode > certificate.p12
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          echo "✅ Certificate installed"
+
+      - name: Get Provisioning Profile UUID
+        run: |
+          PROFILE_UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/Offline_Playing_cards.mobileprovision | plutil -extract UUID raw -)
+          echo "Provisioning Profile UUID: $PROFILE_UUID"
+          echo "PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
+
+      - name: Archive Xcode Project
+        run: |
+          cd build/iOS
+          xcodebuild -project Unity-iPhone.xcodeproj \
+                     -scheme Unity-iPhone \
+                     -sdk iphoneos \
+                     -configuration Release \
+                     -archivePath output/Unity.xcarchive \
+                     CODE_SIGN_STYLE=Manual \
+                     DEVELOPMENT_TEAM=${{ secrets.APPLE_DEVELOPER_TEAM_ID }} \
+                     PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_UUID" \
+                     archive
+
+      - name: Export .ipa
+        run: |
+          xcodebuild -exportArchive \
+                     -archivePath build/iOS/output/Unity.xcarchive \
+                     -exportPath build/iOS/output \
+                     -exportOptionsPlist exportOptions.plist
+
+      - name: Upload Artifact (iOS IPA)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build-iOS
+          path: build/iOS/output/Unity.ipa
+
+  upload-ios:
+    name: Upload iOS Build to App Store
+    runs-on: macos-latest
+    needs: build-ios
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download iOS Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Build-iOS
+          path: build/iOS/output
+
+      - name: Verify .ipa File
+        run: |
+          if [ ! -f "build/iOS/output/Unity.ipa" ]; then
+            echo "❌ ERROR: .ipa file not found!"
+            exit 1
+          fi
+          echo "✅ .ipa file found."
+
+      - name: Upload to App Store
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          echo "${APP_STORE_CONNECT_PRIVATE_KEY}" > AuthKey.p8
+          xcrun altool --upload-app -f "build/iOS/output/Unity.ipa" -t ios --apiKey ${APP_STORE_CONNECT_KEY_ID} --apiIssuer ${APP_STORE_CONNECT_ISSUER_ID}
