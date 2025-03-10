@@ -1,19 +1,30 @@
 using System.Linq;
-using System;
 using UnityEditor;
 using UnityEngine;
+using System;
 
 public static class BuildScript
 {
 
+    [MenuItem("Build/Build All")]
+    public static void BuildAll()
+    {
+        BuildAndroid();
+        BuildIos();
+        BuildWindows();
+        BuildMac();
+    }
+
+    
+
     [MenuItem("Build/Build Android")]
     public static void BuildAndroid()
     {
-
+        
         PlayerSettings.Android.useCustomKeystore = true;
         EditorUserBuildSettings.buildAppBundle = true;
 
-        // Set bundle version. NEW_BUILD_NUMBER environment variable is set in the codemagic.yaml 
+        // Set bundle version
         var versionIsSet = int.TryParse(Environment.GetEnvironmentVariable("NEW_BUILD_NUMBER"), out int version);
         if (versionIsSet)
         {
@@ -72,8 +83,9 @@ public static class BuildScript
         {
             Debug.Log("Keystore alias password not provided");
         }
+
         BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
-        buildPlayerOptions.locationPathName = "android/android.aab";
+        buildPlayerOptions.locationPathName = "android/" + Application.productName + ".aab";
         buildPlayerOptions.target = BuildTarget.Android;
         buildPlayerOptions.options = BuildOptions.None;
         buildPlayerOptions.scenes = GetScenes();
@@ -101,14 +113,14 @@ public static class BuildScript
     public static void BuildWindows()
     {
         BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
-        buildPlayerOptions.locationPathName = "win/" + Application.productName + ".exe";
-        buildPlayerOptions.target = BuildTarget.StandaloneWindows;
+        buildPlayerOptions.locationPathName = "windows/" + Application.productName + ".exe";
+        buildPlayerOptions.target = BuildTarget.StandaloneWindows64;
         buildPlayerOptions.options = BuildOptions.None;
         buildPlayerOptions.scenes = GetScenes();
 
-        Debug.Log("Building Windows");
+        Debug.Log("Building StandaloneWindows64");
         BuildPipeline.BuildPlayer(buildPlayerOptions);
-        Debug.Log("Built Windows");
+        Debug.Log("Built StandaloneWindows64");
     }
 
     [MenuItem("Build/Build Mac")]
@@ -124,6 +136,7 @@ public static class BuildScript
         BuildPipeline.BuildPlayer(buildPlayerOptions);
         Debug.Log("Built StandaloneOSX");
     }
+
 
     private static string[] GetScenes()
     {
