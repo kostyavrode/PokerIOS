@@ -19,7 +19,6 @@ public class IosBuildPostprocessor
 
         PlistElementDict rootDict = plist.root;
 
-        // Add ITSAppUsesNonExemptEncryption to Info.plist
         rootDict.SetString("ITSAppUsesNonExemptEncryption", "false");
 
 
