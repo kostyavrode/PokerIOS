@@ -28,13 +28,6 @@ jobs:
             Library-iOS-
             Library-
 
-      - name: Decode and Install Provisioning Profile (Saved for later)
-        run: |
-          echo "${{ secrets.IOS_PROVISION_PROFILE }}" | base64 --decode > Offline_Playing_cards.mobileprovision
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          mv Offline_Playing_cards.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-          echo "✅ Provisioning profile installed"
-
       - name: Build Xcode Project from Unity
         uses: game-ci/unity-builder@v4
         env:
@@ -55,15 +48,49 @@ jobs:
           fi
           echo "✅ Xcode project found."
 
-      - name: Decode and Install P12 Certificate (After Unity Build)
+      - name: Upload iOS Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS-Build
+          path: build/iOS
+
+  archive-ios:
+    name: Archive Xcode Project
+    runs-on: macos-latest
+    needs: build-ios
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download iOS Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: iOS-Build
+          path: build/iOS
+
+      - name: Decode and Install Provisioning Profile
         run: |
-          echo "${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}" | base64 --decode > certificate.p12
+          echo "${{ secrets.IOS_PROVISION_PROFILE }}" | base64 --decode > Offline_Playing_cards.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          mv Offline_Playing_cards.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          echo "✅ Provisioning profile installed"
+
+      - name: Decode and Install P12 Certificate
+        run: |
+          echo "🔑 Cleaning keychains..."
+          security delete-keychain build.keychain || true
           security create-keychain -p "" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
+          echo "🔑 Importing certificate..."
+          echo "${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}" | base64 --decode > certificate.p12
           security import certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
           echo "✅ Certificate installed"
+
+      - name: Проверка сертификатов в Keychain
+        run: |
+          security find-identity -v -p codesigning
 
       - name: Get Provisioning Profile UUID
         run: |
@@ -91,24 +118,24 @@ jobs:
                      -exportPath build/iOS/output \
                      -exportOptionsPlist exportOptions.plist
 
-      - name: Upload Artifact (iOS IPA)
+      - name: Upload Archive Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Build-iOS
+          name: iOS-Archive
           path: build/iOS/output/Unity.ipa
 
   upload-ios:
     name: Upload iOS Build to App Store
     runs-on: macos-latest
-    needs: build-ios
+    needs: archive-ios
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Download iOS Build Artifact
+      - name: Download iOS Archive Artifact
         uses: actions/download-artifact@v4
         with:
-          name: Build-iOS
+          name: iOS-Archive
           path: build/iOS/output
 
       - name: Verify .ipa File
