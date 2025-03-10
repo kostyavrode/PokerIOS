@@ -20,6 +20,12 @@ jobs:
           key: Library-iOS
           restore-keys: Library-
 
+      - name: Clean Git State (Prevent Dirty Branch)
+        run: |
+          git reset --hard
+          git clean -fdx
+          echo "✅ Git workspace cleaned."
+
       - name: Decode and Install Provisioning Profile
         run: |
           echo "${{ secrets.IOS_PROVISION_PROFILE }}" | base64 --decode > Offline_Playing_cards.mobileprovision
@@ -47,7 +53,7 @@ jobs:
           targetPlatform: iOS
           buildMethod: IOSBuild.BuildIos  # Класс, который вызывает билдер в Unity
           buildName: Unity-iPhone
-          buildPath: build/iOS
+          buildsPath: build/iOS
 
       - name: Verify Xcode Project
         run: |
