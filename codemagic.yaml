@@ -13,11 +13,13 @@ workflows:
       groups:
         - UNITY
       vars:
+        BUILD_SCRIPT: BuildIos
         UNITY_IOS_DIR: ios
         XCODE_PROJECT: "Unity-iPhone.xcodeproj"
         XCODE_SCHEME: "Unity-iPhone"
         BUNDLE_ID: "com.OfflinePlayingcards"
         APP_STORE_APPLE_ID: 6742623321
+      cocoapods: default
     scripts:
       - name: Activate Unity license
         script: | 
@@ -32,7 +34,7 @@ workflows:
             -quit \
             -logFile \
             -projectPath . \
-            -executeMethod BuildScript.BuildIos \
+            -executeMethod BuildScript.$BUILD_SCRIPT \
             -nographics
 
       - name: Verify Xcode project exists
@@ -69,7 +71,7 @@ workflows:
 
       - name: Set the build number
         script: | 
-          BUILD_NUMBER=($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID") + 1)
+          BUILD_NUMBER=($(app-store-connect get-latest-app-store-build-number "$APP_ID") + 1)
           cd $UNITY_IOS_DIR
           agvtool new-version -all $BUILD_NUMBER
           
@@ -84,15 +86,15 @@ workflows:
         script: |
           security find-identity -v -p codesigning          
 
-      - name: Build the project
+      - name: Build ipa for distribution
         script: | 
           xcode-project build-ipa \
             --project "$UNITY_IOS_DIR/$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME" \
+            --scheme "$XCODE_SCHEME"
 
     artifacts:
       - build/ios/ipa/*.ipa
-      - $HOME/Library/Developer/Xcode/DerivedData//Build//*.dSYM
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
 
     publishing:
       scripts:
