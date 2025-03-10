@@ -27,6 +27,16 @@ jobs:
           mv Offline_Playing_cards.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
           echo "✅ Provisioning profile installed"
 
+      - name: Decode and Install P12 Certificate
+        run: |
+          echo "${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}" | base64 --decode > certificate.p12
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          echo "✅ Certificate installed"
+
       - name: Build Xcode Project from Unity
         uses: game-ci/unity-builder@v4
         env:
