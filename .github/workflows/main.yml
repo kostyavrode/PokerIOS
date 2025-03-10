@@ -118,6 +118,8 @@ jobs:
                      DEVELOPMENT_TEAM=${{ secrets.APPLE_DEVELOPER_TEAM_ID }} \
                      PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_UUID" \
                      CODE_SIGN_IDENTITY="Apple Distribution" \
+                     OTHER_CODE_SIGN_FLAGS="--deep" \
+                     -allowProvisioningUpdates \
                      archive
 
       - name: Export .ipa
