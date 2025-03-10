@@ -96,15 +96,16 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
           echo "✅ Certificate installed"
 
-      - name: Проверка сертификатов в Keychain
+      - name: Set Keychain for Xcode
         run: |
-          security find-identity -v -p codesigning
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
 
-      - name: Get Provisioning Profile UUID
+      - name: Get Provisioning Profile Name
         run: |
-          PROFILE_UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/Offline_Playing_cards.mobileprovision | plutil -extract UUID raw -)
-          echo "Provisioning Profile UUID: $PROFILE_UUID"
-          echo "PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
+          PROFILE_NAME=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/Offline_Playing_cards.mobileprovision | plutil -extract Name raw -)
+          echo "Provisioning Profile Name: $PROFILE_NAME"
+          echo "PROVISIONING_PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
 
       - name: Archive Xcode Project
         run: |
@@ -116,7 +117,7 @@ jobs:
                      -archivePath output/Unity.xcarchive \
                      CODE_SIGN_STYLE=Manual \
                      DEVELOPMENT_TEAM=${{ secrets.APPLE_DEVELOPER_TEAM_ID }} \
-                     PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_UUID" \
+                     PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_NAME" \
                      CODE_SIGN_IDENTITY="Apple Distribution" \
                      OTHER_CODE_SIGN_FLAGS="--deep" \
                      -allowProvisioningUpdates \
