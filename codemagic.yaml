@@ -1,122 +1,162 @@
-workflows:
-  unity-ios-workflow:
-    name: Unity iOS Workflow
-    max_build_duration: 120
-    integrations:
-      app_store_connect: APP
-    environment:
-      unity: 2023.1.17f1
-      xcode: 15.4
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.OfflinePlayingcards
-      groups:
-        - UNITY
-      vars:
-        BUILD_SCRIPT: BuildIos
-        UNITY_IOS_DIR: ios
-        XCODE_PROJECT: "Unity-iPhone.xcodeproj"
-        XCODE_SCHEME: "Unity-iPhone"
-        BUNDLE_ID: "com.OfflinePlayingcards"
-        APP_STORE_APPLE_ID: 6742623321
-      cocoapods: default
-    scripts:
-      - name: Activate Unity license
-        script: | 
-          $UNITY_HOME/Contents/MacOS/Unity -batchmode -quit -logFile \
-            -serial ${UNITY_SERIAL} \
-            -username ${UNITY_EMAIL} \
-            -password ${UNITY_PASSWORD}
+name: Build and Upload iOS to App Store
 
-      - name: Generate the Xcode project from Unity
-        script: | 
-          $UNITY_HOME/Contents/MacOS/Unity -batchmode \
-            -quit \
-            -logFile \
-            -projectPath . \
-            -executeMethod BuildScript.$BUILD_SCRIPT \
-            -nographics
+on: [push, pull_request]
 
-      - name: Verify Xcode project exists
-        script: |
-          if [ ! -d "$UNITY_IOS_DIR/$XCODE_PROJECT" ]; then
-            echo "❌ ERROR: Xcode project not found at $UNITY_IOS_DIR/$XCODE_PROJECT"
+jobs:
+  build-ios:
+    name: Build iOS Project
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Clean Git State (Prevent Dirty Branch)
+        run: |
+          git reset --hard
+          git clean -fdx
+          echo "✅ Git workspace cleaned."
+
+      - name: Cache Library
+        uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-iOS-${{ github.sha }}
+          restore-keys: |
+            Library-iOS-
+            Library-
+
+      - name: Build Xcode Project from Unity
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: iOS
+          buildMethod: IOSBuild.BuildIos
+          buildName: Unity-iPhone
+          buildsPath: build/iOS
+
+      - name: Verify Xcode Project
+        run: |
+          if [ ! -d "build/iOS/Unity-iPhone.xcodeproj" ]; then
+            echo "❌ ERROR: Xcode project not found!"
             exit 1
           fi
           echo "✅ Xcode project found."
 
-      - name: Check available Xcode schemes
-        script: |
-          cd $UNITY_IOS_DIR
-          xcodebuild -list
+      - name: Upload iOS Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS-Build
+          path: build/iOS
 
-      - name: Force generate Xcode schemes if missing
-        script: |
-          cd $UNITY_IOS_DIR
-          if ! xcodebuild -list | grep -q "$XCODE_SCHEME"; then
-            echo "⚠️ Xcode scheme missing, generating..."
-            xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" -destination 'platform=iOS Simulator,name=iPhone 14' clean build
-          else
-            echo "✅ Xcode scheme found."
+  archive-ios:
+    name: Archive Xcode Project
+    runs-on: macos-latest
+    needs: build-ios
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download iOS Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: iOS-Build
+          path: build/iOS
+
+      - name: Decode and Install Provisioning Profile
+        run: |
+          echo "${{ secrets.IOS_PROVISION_PROFILE }}" | base64 --decode > Offline_Playing_cards.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          mv Offline_Playing_cards.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          echo "✅ Provisioning profile installed"
+
+      - name: Decode and Install P12 Certificate
+        run: |
+          echo "🔑 Cleaning keychains..."
+          security delete-keychain build.keychain || true
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          echo "🔑 Importing certificate..."
+          echo "${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}" | base64 --decode > certificate.p12
+          security import certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          echo "✅ Certificate installed"
+
+      - name: Проверка сертификатов в Keychain
+        run: |
+          security find-identity -v -p codesigning
+
+      - name: Get Provisioning Profile UUID
+        run: |
+          PROFILE_UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/Offline_Playing_cards.mobileprovision | plutil -extract UUID raw -)
+          echo "Provisioning Profile UUID: $PROFILE_UUID"
+          echo "PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
+
+      - name: Debug Signing Info
+        run: |
+          echo "🔍 DEVELOPMENT_TEAM: ${{ secrets.APPLE_DEVELOPER_TEAM_ID }}"
+          echo "🔍 PROVISIONING_PROFILE_UUID: $PROVISIONING_PROFILE_UUID"
+
+      - name: Archive Xcode Project
+        run: |
+          cd build/iOS
+          xcodebuild -project Unity-iPhone.xcodeproj \
+                     -scheme Unity-iPhone \
+                     -sdk iphoneos \
+                     -configuration Release \
+                     -archivePath output/Unity.xcarchive \
+                     CODE_SIGN_STYLE=Manual \
+                     DEVELOPMENT_TEAM=${{ secrets.APPLE_DEVELOPER_TEAM_ID }} \
+                     PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_UUID" \
+                     CODE_SIGN_IDENTITY="Apple Distribution" \
+                     archive
+
+      - name: Export .ipa
+        run: |
+          xcodebuild -exportArchive \
+                     -archivePath build/iOS/output/Unity.xcarchive \
+                     -exportPath build/iOS/output \
+                     -exportOptionsPlist exportOptions.plist
+
+      - name: Upload Archive Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS-Archive
+          path: build/iOS/output/Unity.ipa
+
+  upload-ios:
+    name: Upload iOS Build to App Store
+    runs-on: macos-latest
+    needs: archive-ios
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download iOS Archive Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: iOS-Archive
+          path: build/iOS/output
+
+      - name: Verify .ipa File
+        run: |
+          if [ ! -f "build/iOS/output/Unity.ipa" ]; then
+            echo "❌ ERROR: .ipa file not found!"
+            exit 1
           fi
+          echo "✅ .ipa file found."
 
-      - name: Check file permissions
-        script: |
-          ls -la $UNITY_IOS_DIR
-          ls -la $UNITY_IOS_DIR/$XCODE_PROJECT
-
-      - name: Set up code signing settings on Xcode project
-        script: | 
-          xcode-project use-profiles
-
-      - name: Set the build number
-        script: | 
-          BUILD_NUMBER=($(app-store-connect get-latest-app-store-build-number "$APP_ID") + 1)
-          cd $UNITY_IOS_DIR
-          agvtool new-version -all $BUILD_NUMBER
-          
-      - name: Debug build location
-        script: |
-          echo "Checking IPA location..."
-          find $UNITY_IOS_DIR -name "*.ipa"
-          echo "Checking dSYM location..."
-          find $HOME/Library/Developer/Xcode/DerivedData -name "*.dSYM"
-          
-      - name: Check code signing certificates
-        script: |
-          security find-identity -v -p codesigning          
-
-      - name: Build ipa for distribution
-        script: | 
-          xcode-project build-ipa \
-            --project "$UNITY_IOS_DIR/$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
-
-    artifacts:
-      - build/ios/ipa/*.ipa
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
-
-    publishing:
-      scripts:
-        - name: Deactivate Unity License
-          script: | 
-            /Applications/Unity\ Hub.app/Contents/Frameworks/UnityLicensingClient_V1.app/Contents/MacOS/Unity.Licensing.Client \
-            --return-ulf \
-            --username ${UNITY_EMAIL} \
-            --password ${UNITY_PASSWORD}
-
-      email:
-        recipients:
-          - user_1@example.com
-          - user_2@example.com
-        notify:
-          success: true
-          failure: false
-
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-        beta_groups:
-          - group name 1
-          - group name 2
-        submit_to_app_store: true
+      - name: Upload to App Store
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          echo "${APP_STORE_CONNECT_PRIVATE_KEY}" > AuthKey.p8
+          xcrun altool --upload-app -f "build/iOS/output/Unity.ipa" -t ios --apiKey ${APP_STORE_CONNECT_KEY_ID} --apiIssuer ${APP_STORE_CONNECT_ISSUER_ID}
