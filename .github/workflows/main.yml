@@ -13,35 +13,27 @@ jobs:
           fetch-depth: 0
           lfs: true
 
-      - name: Cache Library
-        uses: actions/cache@v3
-        with:
-          path: Library
-          key: Library-iOS
-          restore-keys: Library-
-
       - name: Clean Git State (Prevent Dirty Branch)
         run: |
           git reset --hard
           git clean -fdx
           echo "✅ Git workspace cleaned."
 
-      - name: Decode and Install Provisioning Profile
+      - name: Cache Library
+        uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-iOS-${{ github.sha }}
+          restore-keys: |
+            Library-iOS-
+            Library-
+
+      - name: Decode and Install Provisioning Profile (Saved for later)
         run: |
           echo "${{ secrets.IOS_PROVISION_PROFILE }}" | base64 --decode > Offline_Playing_cards.mobileprovision
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           mv Offline_Playing_cards.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
           echo "✅ Provisioning profile installed"
-
-      - name: Decode and Install P12 Certificate
-        run: |
-          echo "${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}" | base64 --decode > certificate.p12
-          security create-keychain -p "" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          security import certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
-          echo "✅ Certificate installed"
 
       - name: Build Xcode Project from Unity
         uses: game-ci/unity-builder@v4
@@ -51,7 +43,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: iOS
-          buildMethod: IOSBuild.BuildIos  # Класс, который вызывает билдер в Unity
+          buildMethod: IOSBuild.BuildIos
           buildName: Unity-iPhone
           buildsPath: build/iOS
 
@@ -62,6 +54,16 @@ jobs:
             exit 1
           fi
           echo "✅ Xcode project found."
+
+      - name: Decode and Install P12 Certificate (After Unity Build)
+        run: |
+          echo "${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}" | base64 --decode > certificate.p12
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          echo "✅ Certificate installed"
 
       - name: Get Provisioning Profile UUID
         run: |
