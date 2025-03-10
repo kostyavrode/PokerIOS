@@ -117,6 +117,7 @@ jobs:
                      CODE_SIGN_STYLE=Manual \
                      DEVELOPMENT_TEAM=${{ secrets.APPLE_DEVELOPER_TEAM_ID }} \
                      PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_UUID" \
+                     CODE_SIGN_IDENTITY="Apple Distribution" \
                      archive
 
       - name: Export .ipa
